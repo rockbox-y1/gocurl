@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,11 +59,21 @@ func createBody(cfg *config.Config) (body io.Reader, err error) {
 
 // addBodyHeaders adds necessary HTTP headers if it's required by the
 // command-line arguments. For instance, -d/--data requires adding the
-// Content-Type: application/x-www-form-urlencoded header.
+// Content-Type: application/x-www-form-urlencoded or
+// Content-Type: application/json header.
 func addBodyHeaders(req *http.Request, cfg *config.Config) {
 	if cfg.Data != "" && !websocket.IsWebSocket(cfg.RequestURL) {
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		if isJSON(cfg.Data) {
+			req.Header.Add("Content-Type", "application/json")
+		} else {
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		}
 	}
+}
+
+func isJSON(s string) bool {
+	var js map[string]interface{}
+	return json.Unmarshal([]byte(s), &js) == nil
 }
 
 // addHeaders adds HTTP headers that are specified in command-line arguments.
